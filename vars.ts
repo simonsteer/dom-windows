@@ -1,3 +1,4 @@
 export const MIN_FRAME_HEIGHT = 120
+export const CLOSED_FRAME_HEIGHT = 48
 export const MIN_FRAME_WIDTH = 200
-export const RESIZE_HANDLE_SIZE = 10
+export const RESIZE_HANDLE_SIZE = 8

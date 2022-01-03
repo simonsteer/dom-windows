@@ -299,7 +299,7 @@ const createResizeHandleHandlers = (frame: Frame, kind: ResizeHandleKind) => {
 
 const createResizeHandleElement = (kind: ResizeHandleKind) => {
   const el = document.createElement('div')
-  el.style.background = 'red'
+  el.style.background = 'black'
   el.style.cursor = getCursorForHandleKind(kind)
 
   switch (kind) {

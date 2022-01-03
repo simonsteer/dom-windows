@@ -8,7 +8,7 @@ export default class Frames {
   add(frameData: FrameData) {
     const frame = new Frame(this.el, frameData)
     this.frames[frameData.id] = frame
-    this.el.appendChild(frame.el)
+    this.el.append(frame.el)
     return this
   }
 
@@ -28,7 +28,6 @@ const createFramesContainer = () => {
   div.style.position = 'relative'
   div.style.width = '100vw'
   div.style.height = '100vh'
-  div.style.background = 'blue'
 
   return div
 }
