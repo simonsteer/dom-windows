@@ -1,26 +1,16 @@
-import Frame from 'Frame'
-import { CLOSED_FRAME_HEIGHT, RESIZE_HANDLE_SIZE } from 'vars'
+import createCloseButton from 'createCloseButton'
+import createMinMaxButton from 'createMinMaxButton'
+import { getDragHandleHeight } from 'vars'
+import { Frame } from 'types'
 
-export default function createDragHandle(frame: Frame) {
-  const [dragHandle, cleanupDragHandle] = createDragHandleElement(frame)
-  const [closeButton, cleanupCloseButton] = createCloseButtonElement(frame)
-  const [minMaxButton, cleanupMinMaxButton] = createMinMaxButtonElement(frame)
-  const title = createDragHandleTitleElement(frame.data.title)
-
-  dragHandle.append(title, minMaxButton, closeButton)
-  return [
-    dragHandle,
-    () => {
-      cleanupCloseButton()
-      cleanupMinMaxButton()
-      cleanupDragHandle()
-    },
-  ] as const
-}
-
-function createDragHandleElement(frame: Frame) {
+export default function createDragHandle(
+  frame: Pick<
+    Frame,
+    'setLocation' | 'data' | 'close' | 'open' | 'getIsOpen' | 'remove' | 'el'
+  >
+) {
   const el = document.createElement('div')
-
+  el.className = 'frame-drag-handle'
   el.style.width = `100%`
   el.style.display = `flex`
   el.style.justifyContent = `space-between`
@@ -30,6 +20,8 @@ function createDragHandleElement(frame: Frame) {
 
   function pointerdown(e: PointerEvent) {
     e.preventDefault()
+    // frame.el.style.zIndex = performance.now() + ''
+
     const panStart = [e.screenX, e.screenY] as [number, number]
     const [oldX, oldY] = frame.data.location
 
@@ -63,54 +55,25 @@ function createDragHandleElement(frame: Frame) {
   }
   el.addEventListener('pointerdown', pointerdown)
 
-  return [el, () => el.removeEventListener('pointerdown', pointerdown)] as const
-}
+  const title = document.createElement('span')
+  title.className = 'frame-title'
+  title.append(frame.data.title)
 
-function createDragHandleTitleElement(text: string) {
-  const title = document.createElement('p')
-  title.append(text)
+  const [minMaxButton, teardownMinMaxButton] = createMinMaxButton(frame)
+  const [closeButton, teardownCloseButton] = createCloseButton(frame)
 
-  return title
-}
+  const buttonWrapper = document.createElement('div')
+  buttonWrapper.className = 'frame-button-wrapper'
+  buttonWrapper.append(minMaxButton, closeButton)
 
-function createCloseButtonElement(frame: Frame) {
-  const closeButton = document.createElement('button')
-  closeButton.append('x')
-
-  function handleClick(e: MouseEvent) {
-    e.preventDefault()
-    frame.remove()
-  }
-  closeButton.addEventListener('click', handleClick)
+  el.append(title, buttonWrapper)
 
   return [
-    closeButton,
-    () => closeButton.removeEventListener('click', handleClick),
+    el,
+    () => {
+      el.removeEventListener('pointerdown', pointerdown)
+      teardownMinMaxButton()
+      teardownCloseButton()
+    },
   ] as const
-}
-
-function createMinMaxButtonElement(frame: Frame) {
-  const minMaxButton = document.createElement('button')
-  minMaxButton.append(frame.isOpen ? '-' : '+')
-
-  function handleClick(e: MouseEvent) {
-    e.preventDefault()
-    if (frame.isOpen) {
-      frame.close()
-      minMaxButton.replaceChildren('+')
-    } else {
-      frame.open()
-      minMaxButton.replaceChildren('-')
-    }
-  }
-  minMaxButton.addEventListener('click', handleClick)
-
-  return [
-    minMaxButton,
-    () => minMaxButton.removeEventListener('click', handleClick),
-  ] as const
-}
-
-export function getDragHandleHeight() {
-  return CLOSED_FRAME_HEIGHT - RESIZE_HANDLE_SIZE * 2
 }

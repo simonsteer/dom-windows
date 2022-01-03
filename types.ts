@@ -1,4 +1,8 @@
+import createFrame from 'createFrame'
+import createFramesManager from 'createFramesManager'
+
 export type Id = string
+
 export type FrameData = {
   id: Id
   title: string
@@ -10,8 +14,14 @@ export type FrameData = {
     y: [top: string | null, bottom: string | null]
   }
 }
+export type Frame = ReturnType<typeof createFrame>
+
+export type FramesManager = ReturnType<typeof createFramesManager>
+
 type HorizontalEdge = 'right' | 'left'
+
 type VerticalEdge = 'top' | 'bottom'
+
 export type ResizeHandleKind =
   | HorizontalEdge
   | VerticalEdge

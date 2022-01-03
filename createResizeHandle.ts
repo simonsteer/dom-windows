@@ -1,9 +1,11 @@
-import Frame from 'Frame'
-import { ResizeHandleKind } from 'types'
+import { Frame, ResizeHandleKind } from 'types'
 import { MIN_FRAME_HEIGHT, MIN_FRAME_WIDTH, RESIZE_HANDLE_SIZE } from 'vars'
 
 export default function createResizeHandle(
-  frame: Frame,
+  frame: { root: HTMLElement } & Pick<
+    Frame,
+    'setWidth' | 'setHeight' | 'data' | 'setX' | 'setY' | 'getIsOpen'
+  >,
   kind: ResizeHandleKind
 ) {
   const cursor = getCursorForHandleKind(kind)
@@ -17,12 +19,12 @@ export default function createResizeHandle(
 
     const pointerup = e => {
       e.preventDefault()
-      frame.parent.style.cursor = 'auto'
+      frame.root.style.cursor = 'auto'
       window.removeEventListener('pointermove', pointermove)
       window.removeEventListener('pointerup', pointerup)
     }
 
-    frame.parent.style.cursor = cursor
+    frame.root.style.cursor = cursor
     window.addEventListener('pointermove', pointermove)
     window.addEventListener('pointerup', pointerup)
   }
@@ -33,7 +35,10 @@ export default function createResizeHandle(
 }
 
 const createPointerMove = (
-  frame: Frame,
+  frame: Pick<
+    Frame,
+    'setHeight' | 'setWidth' | 'getIsOpen' | 'setY' | 'setX' | 'data'
+  >,
   kind: ResizeHandleKind,
   panStart: [number, number]
 ) => {
@@ -44,6 +49,8 @@ const createPointerMove = (
     case 'top':
       return e => {
         e.preventDefault()
+        if (!frame.getIsOpen()) return
+
         const deltaY = e.screenY - panStart[1]
 
         let newHeight = oldHeight - deltaY
@@ -99,6 +106,8 @@ const createPointerMove = (
     case 'bottom':
       return e => {
         e.preventDefault()
+        if (!frame.getIsOpen()) return
+
         const deltaY = e.screenY - panStart[1]
 
         let newHeight = oldHeight + deltaY
@@ -117,19 +126,6 @@ const createPointerMove = (
     case 'bottom-left':
       return e => {
         e.preventDefault()
-        const deltaY = e.screenY - panStart[1]
-
-        let newHeight = oldHeight + deltaY
-
-        if (newHeight < MIN_FRAME_HEIGHT) {
-          newHeight = MIN_FRAME_HEIGHT
-        }
-
-        const bottomEdge = frame.data.location[1] + newHeight
-        if (bottomEdge > window.innerHeight) {
-          newHeight = window.innerHeight - frame.data.location[1]
-        }
-
         const deltaX = e.screenX - panStart[0]
 
         let newWidth = oldWidth - deltaX
@@ -147,24 +143,26 @@ const createPointerMove = (
 
         frame.setWidth(newWidth)
         frame.setX(newX)
-        frame.setHeight(newHeight)
+
+        if (frame.getIsOpen()) {
+          const deltaY = e.screenY - panStart[1]
+
+          let newHeight = oldHeight + deltaY
+          if (newHeight < MIN_FRAME_HEIGHT) {
+            newHeight = MIN_FRAME_HEIGHT
+          }
+
+          const bottomEdge = frame.data.location[1] + newHeight
+          if (bottomEdge > window.innerHeight) {
+            newHeight = window.innerHeight - frame.data.location[1]
+          }
+
+          frame.setHeight(newHeight)
+        }
       }
     case 'bottom-right':
       return e => {
         e.preventDefault()
-        const deltaY = e.screenY - panStart[1]
-
-        let newHeight = oldHeight + deltaY
-
-        if (newHeight < MIN_FRAME_HEIGHT) {
-          newHeight = MIN_FRAME_HEIGHT
-        }
-
-        const bottomEdge = frame.data.location[1] + newHeight
-        if (bottomEdge > window.innerHeight) {
-          newHeight = window.innerHeight - frame.data.location[1]
-        }
-
         const deltaX = e.screenX - panStart[0]
 
         let newWidth = oldWidth + deltaX
@@ -174,7 +172,22 @@ const createPointerMove = (
         }
 
         frame.setWidth(newWidth)
-        frame.setHeight(newHeight)
+
+        if (frame.getIsOpen()) {
+          const deltaY = e.screenY - panStart[1]
+
+          let newHeight = oldHeight + deltaY
+          if (newHeight < MIN_FRAME_HEIGHT) {
+            newHeight = MIN_FRAME_HEIGHT
+          }
+
+          const bottomEdge = frame.data.location[1] + newHeight
+          if (bottomEdge > window.innerHeight) {
+            newHeight = window.innerHeight - frame.data.location[1]
+          }
+
+          frame.setHeight(newHeight)
+        }
       }
     case 'top-left':
       return e => {
@@ -197,56 +210,59 @@ const createPointerMove = (
           newWidth = MIN_FRAME_WIDTH
         }
 
-        let newHeight = oldHeight - deltaY
-        let newY = oldY - (newHeight - oldHeight)
-
-        if (newY < 0) {
-          newHeight += newY
-          newY = 0
-        }
-
-        if (newHeight < MIN_FRAME_HEIGHT) {
-          newY -= MIN_FRAME_HEIGHT - newHeight
-          newHeight = MIN_FRAME_HEIGHT
-        }
-
         frame.setWidth(newWidth)
         frame.setX(newX)
-        frame.setHeight(newHeight)
-        frame.setY(newY)
+
+        if (frame.getIsOpen()) {
+          let newHeight = oldHeight - deltaY
+          let newY = oldY - (newHeight - oldHeight)
+
+          if (newY < 0) {
+            newHeight += newY
+            newY = 0
+          }
+
+          if (newHeight < MIN_FRAME_HEIGHT) {
+            newY -= MIN_FRAME_HEIGHT - newHeight
+            newHeight = MIN_FRAME_HEIGHT
+          }
+
+          frame.setHeight(newHeight)
+          frame.setY(newY)
+        }
       }
     case 'top-right':
       return e => {
         e.preventDefault()
+
         const [deltaX, deltaY] = [
           e.screenX - panStart[0],
           e.screenY - panStart[1],
         ]
 
         let newWidth = oldWidth + deltaX
-
         if (newWidth < MIN_FRAME_WIDTH) {
           newWidth = MIN_FRAME_WIDTH
         }
-
         frame.setWidth(newWidth)
 
-        let newHeight = oldHeight - deltaY
-        let newY = oldY - (newHeight - oldHeight)
+        if (frame.getIsOpen()) {
+          let newHeight = oldHeight - deltaY
+          let newY = oldY - (newHeight - oldHeight)
 
-        if (newY < 0) {
-          newHeight += newY
-          newY = 0
+          if (newY < 0) {
+            newHeight += newY
+            newY = 0
+          }
+
+          if (newHeight < MIN_FRAME_HEIGHT) {
+            newY -= MIN_FRAME_HEIGHT - newHeight
+            newHeight = MIN_FRAME_HEIGHT
+          }
+
+          frame.setHeight(newHeight)
+          frame.setY(newY)
         }
-
-        if (newHeight < MIN_FRAME_HEIGHT) {
-          newY -= MIN_FRAME_HEIGHT - newHeight
-          newHeight = MIN_FRAME_HEIGHT
-        }
-
-        frame.setWidth(newWidth)
-        frame.setHeight(newHeight)
-        frame.setY(newY)
       }
   }
 }
@@ -273,7 +289,8 @@ const createResizeHandleElement = (
   cursor: ReturnType<typeof getCursorForHandleKind>
 ) => {
   const el = document.createElement('div')
-  el.style.background = 'black'
+  el.className = `frame-resize-handle-${kind}`
+
   el.style.cursor = cursor
 
   switch (kind) {
