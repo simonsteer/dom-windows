@@ -1,34 +1,35 @@
 import Frame from 'Frame'
-import { MIN_FRAME_HEIGHT, MIN_FRAME_WIDTH, RESIZE_HANDLE_SIZE } from 'vars'
 import { ResizeHandleKind } from 'types'
+import { MIN_FRAME_HEIGHT, MIN_FRAME_WIDTH, RESIZE_HANDLE_SIZE } from 'vars'
 
-export default class ResizeHandle {
+export default function createResizeHandle(
+  frame: Frame,
   kind: ResizeHandleKind
-  frame: Frame
-  el: HTMLElement
-  handlers: ReturnType<typeof createResizeHandleHandlers>
+) {
+  const cursor = getCursorForHandleKind(kind)
+  const el = createResizeHandleElement(kind, cursor)
 
-  constructor(frame: Frame, kind: ResizeHandleKind) {
-    this.frame = frame
-    this.kind = kind
-    this.el = createResizeHandleElement(kind)
-    this.handlers = createResizeHandleHandlers(this.frame, kind)
-    this.setup()
-  }
+  function pointerDown(e: PointerEvent) {
+    e.preventDefault()
+    const panStart = [e.screenX, e.screenY] as [number, number]
 
-  setup = () => {
-    for (const handlerKind in this.handlers) {
-      const handler = this.handlers[handlerKind]
-      this.el.addEventListener(handlerKind, handler)
+    const pointermove = createPointerMove(frame, kind, panStart)
+
+    const pointerup = e => {
+      e.preventDefault()
+      frame.parent.style.cursor = 'auto'
+      window.removeEventListener('pointermove', pointermove)
+      window.removeEventListener('pointerup', pointerup)
     }
+
+    frame.parent.style.cursor = cursor
+    window.addEventListener('pointermove', pointermove)
+    window.addEventListener('pointerup', pointerup)
   }
 
-  teardown = () => {
-    for (const handlerKind in this.handlers) {
-      const handler = this.handlers[handlerKind]
-      this.el.removeEventListener(handlerKind, handler)
-    }
-  }
+  el.addEventListener('pointerdown', pointerDown)
+
+  return [el, () => el.removeEventListener('pointerdown', pointerDown)] as const
 }
 
 const createPointerMove = (
@@ -247,12 +248,6 @@ const createPointerMove = (
         frame.setHeight(newHeight)
         frame.setY(newY)
       }
-    default:
-      return e => {
-        e.preventDefault()
-        const distance = [e.screenX - panStart[0], e.screenY - panStart[1]]
-        console.log(kind, ...distance)
-      }
   }
 }
 
@@ -273,34 +268,13 @@ function getCursorForHandleKind(kind: ResizeHandleKind) {
   }
 }
 
-const createResizeHandleHandlers = (frame: Frame, kind: ResizeHandleKind) => {
-  const cursor = getCursorForHandleKind(kind)
-
-  function pointerdown(e: PointerEvent) {
-    e.preventDefault()
-    const panStart = [e.screenX, e.screenY] as [number, number]
-
-    const pointermove = createPointerMove(frame, kind, panStart)
-
-    const pointerup = e => {
-      e.preventDefault()
-      frame.parent.style.cursor = 'auto'
-      window.removeEventListener('pointermove', pointermove)
-      window.removeEventListener('pointerup', pointerup)
-    }
-
-    frame.parent.style.cursor = cursor
-    window.addEventListener('pointermove', pointermove)
-    window.addEventListener('pointerup', pointerup)
-  }
-
-  return { pointerdown }
-}
-
-const createResizeHandleElement = (kind: ResizeHandleKind) => {
+const createResizeHandleElement = (
+  kind: ResizeHandleKind,
+  cursor: ReturnType<typeof getCursorForHandleKind>
+) => {
   const el = document.createElement('div')
   el.style.background = 'black'
-  el.style.cursor = getCursorForHandleKind(kind)
+  el.style.cursor = cursor
 
   switch (kind) {
     case 'top':
