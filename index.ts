@@ -1,6 +1,6 @@
-import createFramesManager from 'createFramesManager'
+import Frames from 'lib'
 
-const frames = createFramesManager()
+const frames = new Frames()
 
 document.body.append(frames.el)
 
@@ -25,6 +25,6 @@ frames.add({
   title: 'Lorem Ipsum',
   children: testChildren.cloneNode(true),
   dimensions: [300, 400],
-  location: [555, 175],
+  location: [605, 275],
   sizeLocks: { x: [null, null], y: [null, null] },
 })

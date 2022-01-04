@@ -1,68 +1,68 @@
-import { Frame, ResizeHandleKind } from 'types'
+import { ResizeHandleKind } from 'types'
 import { MIN_FRAME_HEIGHT, MIN_FRAME_WIDTH, RESIZE_HANDLE_SIZE } from 'vars'
+import Frame from './Frame'
+import PanHandle from './PanHandle'
 
-export default function createResizeHandle(
-  frame: { root: HTMLElement } & Pick<
-    Frame,
-    | 'setWidth'
-    | 'setHeight'
-    | 'data'
-    | 'setX'
-    | 'setY'
-    | 'getIsOpen'
-    | 'updateAttr'
-  >,
+export default class ResizeHandle extends PanHandle {
+  cursor: ReturnType<typeof getCursorForHandleKind>
   kind: ResizeHandleKind
-) {
-  const cursor = getCursorForHandleKind(kind)
-  const el = createResizeHandleElement(kind, cursor)
+  oldDimensions: [number, number] = [0, 0]
+  oldLocation: [number, number] = [0, 0]
 
-  function pointerDown(e: PointerEvent) {
-    e.preventDefault()
-    frame.updateAttr('resizing', true)
-    const panStart = [e.screenX, e.screenY] as [number, number]
+  constructor(frame: Frame, kind: ResizeHandleKind) {
+    super('div', {
+      onStart: () => {
+        this.oldDimensions = [...frame.data.dimensions]
+        this.oldLocation = [...frame.data.location]
+        frame.manager.styles(['cursor', this.cursor])
+        frame.state('resizing', true)
+      },
+      onMove: deltas =>
+        createPointerMove(
+          frame,
+          kind,
+          this.oldDimensions,
+          this.oldLocation
+        )(deltas),
+      onEnd: () => {
+        frame.manager.styles(['cursor', 'auto'])
+        frame.state('resizing', false)
+      },
+    })
+    this.kind = kind
+    this.cursor = getCursorForHandleKind(kind)
 
-    const pointermove = createPointerMove(frame, kind, panStart)
-
-    const pointerup = e => {
-      e.preventDefault()
-      frame.updateAttr('resizing', false)
-      frame.root.style.cursor = 'auto'
-      window.removeEventListener('pointermove', pointermove)
-      window.removeEventListener('pointerup', pointerup)
-    }
-
-    frame.root.style.cursor = cursor
-    window.addEventListener('pointermove', pointermove)
-    window.addEventListener('pointerup', pointerup)
+    this.attrs([
+      'class',
+      `dom-windows--resize-handle dom-windows--resize-handle-${kind}`,
+    ]).styles(
+      ['cursor', this.cursor],
+      [
+        'width',
+        ['top', 'bottom'].includes(kind)
+          ? `calc(100% - ${RESIZE_HANDLE_SIZE * 2}px)`
+          : `${RESIZE_HANDLE_SIZE}px`,
+      ],
+      [
+        'height',
+        ['left', 'right'].includes(kind)
+          ? `calc(100% - ${RESIZE_HANDLE_SIZE * 2}px)`
+          : `${RESIZE_HANDLE_SIZE}px`,
+      ]
+    )
   }
-
-  el.addEventListener('pointerdown', pointerDown)
-
-  return [el, () => el.removeEventListener('pointerdown', pointerDown)] as [
-    HTMLElement,
-    () => void
-  ]
 }
 
 const createPointerMove = (
-  frame: Pick<
-    Frame,
-    'setHeight' | 'setWidth' | 'getIsOpen' | 'setY' | 'setX' | 'data'
-  >,
+  frame: Frame,
   kind: ResizeHandleKind,
-  panStart: [number, number]
-) => {
-  const [oldWidth, oldHeight] = frame.data.dimensions
-  const [oldX, oldY] = frame.data.location
-
+  [oldWidth, oldHeight]: [number, number],
+  [oldX, oldY]: [number, number]
+): ((deltas: [deltaX: number, deltaY: number]) => void) => {
   switch (kind) {
     case 'top':
-      return e => {
-        e.preventDefault()
-        if (!frame.getIsOpen()) return
-
-        const deltaY = e.screenY - panStart[1]
+      return ([_, deltaY]) => {
+        if (!frame.open) return
 
         let newHeight = oldHeight - deltaY
         let newY = oldY - (newHeight - oldHeight)
@@ -81,23 +81,22 @@ const createPointerMove = (
         frame.setY(newY)
       }
     case 'right':
-      return e => {
-        e.preventDefault()
-        const deltaX = e.screenX - panStart[0]
-
+      return ([deltaX]) => {
         let newWidth = oldWidth + deltaX
 
         if (newWidth < MIN_FRAME_WIDTH) {
           newWidth = MIN_FRAME_WIDTH
         }
 
+        const rightEdge = frame.data.location[0] + newWidth
+        if (rightEdge > window.innerWidth) {
+          newWidth = window.innerWidth - frame.data.location[0]
+        }
+
         frame.setWidth(newWidth)
       }
     case 'left':
-      return e => {
-        e.preventDefault()
-        const deltaX = e.screenX - panStart[0]
-
+      return ([deltaX]) => {
         let newWidth = oldWidth - deltaX
         let newX = oldX - (newWidth - oldWidth)
 
@@ -115,11 +114,8 @@ const createPointerMove = (
         frame.setX(newX)
       }
     case 'bottom':
-      return e => {
-        e.preventDefault()
-        if (!frame.getIsOpen()) return
-
-        const deltaY = e.screenY - panStart[1]
+      return ([_, deltaY]) => {
+        if (!frame.open) return
 
         let newHeight = oldHeight + deltaY
 
@@ -135,10 +131,7 @@ const createPointerMove = (
         frame.setHeight(newHeight)
       }
     case 'bottom-left':
-      return e => {
-        e.preventDefault()
-        const deltaX = e.screenX - panStart[0]
-
+      return ([deltaX, deltaY]) => {
         let newWidth = oldWidth - deltaX
         let newX = oldX - (newWidth - oldWidth)
 
@@ -155,9 +148,7 @@ const createPointerMove = (
         frame.setWidth(newWidth)
         frame.setX(newX)
 
-        if (frame.getIsOpen()) {
-          const deltaY = e.screenY - panStart[1]
-
+        if (frame.open) {
           let newHeight = oldHeight + deltaY
           if (newHeight < MIN_FRAME_HEIGHT) {
             newHeight = MIN_FRAME_HEIGHT
@@ -172,21 +163,21 @@ const createPointerMove = (
         }
       }
     case 'bottom-right':
-      return e => {
-        e.preventDefault()
-        const deltaX = e.screenX - panStart[0]
-
+      return ([deltaX, deltaY]) => {
         let newWidth = oldWidth + deltaX
 
         if (newWidth < MIN_FRAME_WIDTH) {
           newWidth = MIN_FRAME_WIDTH
         }
 
+        const rightEdge = frame.data.location[0] + newWidth
+        if (rightEdge > window.innerWidth) {
+          newWidth = window.innerWidth - frame.data.location[0]
+        }
+
         frame.setWidth(newWidth)
 
-        if (frame.getIsOpen()) {
-          const deltaY = e.screenY - panStart[1]
-
+        if (frame.open) {
           let newHeight = oldHeight + deltaY
           if (newHeight < MIN_FRAME_HEIGHT) {
             newHeight = MIN_FRAME_HEIGHT
@@ -201,13 +192,7 @@ const createPointerMove = (
         }
       }
     case 'top-left':
-      return e => {
-        e.preventDefault()
-        const [deltaX, deltaY] = [
-          e.screenX - panStart[0],
-          e.screenY - panStart[1],
-        ]
-
+      return ([deltaX, deltaY]) => {
         let newWidth = oldWidth - deltaX
         let newX = oldX - (newWidth - oldWidth)
 
@@ -224,7 +209,7 @@ const createPointerMove = (
         frame.setWidth(newWidth)
         frame.setX(newX)
 
-        if (frame.getIsOpen()) {
+        if (frame.open) {
           let newHeight = oldHeight - deltaY
           let newY = oldY - (newHeight - oldHeight)
 
@@ -243,21 +228,19 @@ const createPointerMove = (
         }
       }
     case 'top-right':
-      return e => {
-        e.preventDefault()
-
-        const [deltaX, deltaY] = [
-          e.screenX - panStart[0],
-          e.screenY - panStart[1],
-        ]
-
+      return ([deltaX, deltaY]) => {
         let newWidth = oldWidth + deltaX
         if (newWidth < MIN_FRAME_WIDTH) {
           newWidth = MIN_FRAME_WIDTH
         }
+        const rightEdge = frame.data.location[0] + newWidth
+        if (rightEdge > window.innerWidth) {
+          newWidth = window.innerWidth - frame.data.location[0]
+        }
+
         frame.setWidth(newWidth)
 
-        if (frame.getIsOpen()) {
+        if (frame.open) {
           let newHeight = oldHeight - deltaY
           let newY = oldY - (newHeight - oldHeight)
 
@@ -293,39 +276,4 @@ function getCursorForHandleKind(kind: ResizeHandleKind) {
     case 'bottom-left':
       return 'nesw-resize'
   }
-}
-
-const createResizeHandleElement = (
-  kind: ResizeHandleKind,
-  cursor: ReturnType<typeof getCursorForHandleKind>
-) => {
-  const el = document.createElement('div')
-  el.className = `dom-windows--resize-handle dom-windows--resize-handle-${kind}`
-
-  el.style.cursor = cursor
-
-  switch (kind) {
-    case 'top':
-    case 'bottom':
-      el.style.width = `calc(100% - ${RESIZE_HANDLE_SIZE * 2}px)`
-      el.style.height = `${RESIZE_HANDLE_SIZE}px`
-      break
-    case 'left':
-    case 'right':
-      el.style.width = `${RESIZE_HANDLE_SIZE}px`
-      el.style.height = `calc(100% - ${RESIZE_HANDLE_SIZE * 2}px)`
-      break
-    case 'top-left':
-    case 'top-right':
-      el.style.width = `${RESIZE_HANDLE_SIZE}px`
-      el.style.height = `${RESIZE_HANDLE_SIZE}px`
-      break
-    case 'bottom-left':
-    case 'bottom-right':
-      el.style.width = `${RESIZE_HANDLE_SIZE}px`
-      el.style.height = `${RESIZE_HANDLE_SIZE}px`
-      break
-  }
-
-  return el
 }
