@@ -14,26 +14,36 @@
     }
 
     .frames-manager {
-      background: rgba(0, 0, 0, 0.8);
+      background: linear-gradient(
+        45deg,
+        rgba(31, 32, 33, 1) 0%,
+        rgba(54, 55, 56, 1) 100%
+      );
     }
     .managed-frame {
-      background: rgba(255, 255, 255, 0.5);
+      background: linear-gradient(
+        45deg,
+        rgba(255, 255, 255, 0.7) 0%,
+        rgba(255, 255, 255, 0.15) 50%,
+        rgba(255, 255, 255, 0.7) 75%,
+        rgba(255, 255, 255, 0.15) 100%
+      );
       border: 1px solid white;
       border-radius: 5px;
       overflow: hidden;
       color: white;
-      -webkit-box-shadow: 5px 5px 13px -2px rgba(0, 0, 0, 0.76);
-      box-shadow: 5px 5px 13px -2px rgba(0, 0, 0, 0.76);
+      -webkit-box-shadow: 5px 5px 13px -2px rgba(0, 0, 0, 0.67);
+      box-shadow: 5px 5px 13px -2px rgba(0, 0, 0, 0.67);
     }
     .frame-drag-handle {
       border-bottom: 1px solid white;
-      border-top-left-radius: 5px;
-      border-top-right-radius: 5px;
+      border-top-left-radius: 3px;
+      border-top-right-radius: 3px;
       background: rgba(123, 123, 123, 0.8);
     }
     .frame-children-wrapper {
-      border-bottom-left-radius: 5px;
-      border-bottom-right-radius: 5px;
+      border-bottom-left-radius: 3px;
+      border-bottom-right-radius: 3px;
       background: rgba(123, 123, 123, 0.8);
       -ms-overflow-style: none;
       scrollbar-width: none;
