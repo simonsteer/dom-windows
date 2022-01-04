@@ -21,7 +21,7 @@ export default class El {
   teardown = () => {
     this.teardownFns.forEach(fn => fn())
     this.teardownFns = []
-    this._children.forEach(child => {
+    this.children.forEach(child => {
       if (child instanceof El) child.teardown()
     })
     return this
@@ -41,26 +41,26 @@ export default class El {
     return this
   }
 
-  private _children: (Text | El)[] = []
+  children: (Node | El)[] = []
 
-  replaceChildren = (...children: (Text | El)[]) => {
-    this._children.forEach(child => {
+  replaceChildren = (...children: (Node | El)[]) => {
+    this.children.forEach(child => {
       if (child instanceof El && !children.includes(child)) {
         child.teardown()
       }
     })
-    this._children = children
+    this.children = children
     this.el.replaceChildren(
-      ...this._children.map(c => (c instanceof El ? c.el : c))
+      ...this.children.map(c => (c instanceof El ? c.el : c))
     )
     return this
   }
 
-  replaceChild = (oldChild: El | Text, newChild: El | Text) => {
-    const index = this._children.indexOf(oldChild)
+  replaceChild = (oldChild: El | Node, newChild: El | Node) => {
+    const index = this.children.indexOf(oldChild)
     if (index === -1) return this
 
-    this._children.splice(index, 1, newChild)
+    this.children.splice(index, 1, newChild)
     if (oldChild instanceof El) {
       oldChild.teardown()
     }
@@ -73,11 +73,11 @@ export default class El {
     return this
   }
 
-  removeChild = (child: El | Text) => {
-    const index = this._children.indexOf(child)
+  removeChild = (child: El | Node) => {
+    const index = this.children.indexOf(child)
     if (index === -1) return this
 
-    this._children.splice(index, 1)
+    this.children.splice(index, 1)
 
     if (child instanceof El) {
       child.teardown()
@@ -89,15 +89,15 @@ export default class El {
     return this
   }
 
-  addChildren = (...children: (Text | El)[]) => {
-    this._children.push(...children)
-    this.el.append(...this._children.map(c => (c instanceof El ? c.el : c)))
+  addChildren = (...children: (Node | El)[]) => {
+    this.children.push(...children)
+    this.el.append(...this.children.map(c => (c instanceof El ? c.el : c)))
     return this
   }
 
-  removeChildren = (...children: (Text | El)[]) => {
+  removeChildren = (...children: (Node | El)[]) => {
     this.replaceChildren(
-      ...this._children.filter(child => !children.includes(child))
+      ...this.children.filter(child => !children.includes(child))
     )
     return this
   }

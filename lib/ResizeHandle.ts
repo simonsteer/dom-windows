@@ -1,34 +1,38 @@
-import { ResizeHandleKind } from 'types'
-import { MIN_FRAME_HEIGHT, MIN_FRAME_WIDTH, RESIZE_HANDLE_SIZE } from 'vars'
-import Frame from './Frame'
+import { ResizeHandleKind } from './types'
+import DOMWindow from './DOMWindow'
 import PanHandle from './PanHandle'
-
 export default class ResizeHandle extends PanHandle {
   cursor: ReturnType<typeof getCursorForHandleKind>
   kind: ResizeHandleKind
+  domWindow: DOMWindow
   oldDimensions: [number, number] = [0, 0]
   oldLocation: [number, number] = [0, 0]
 
-  constructor(frame: Frame, kind: ResizeHandleKind) {
+  constructor(domWindow: DOMWindow, kind: ResizeHandleKind) {
     super('div', {
       onStart: () => {
-        this.oldDimensions = [...frame.data.dimensions]
-        this.oldLocation = [...frame.data.location]
-        frame.manager.styles(['cursor', this.cursor])
-        frame.state('resizing', true)
+        this.oldDimensions = [...domWindow.data.dimensions]
+        this.oldLocation = [...domWindow.data.location]
+        this.domWindow.manager.styles(['cursor', this.cursor])
+        this.domWindow.state('resizing', true)
       },
-      onMove: deltas =>
-        createPointerMove(
-          frame,
-          kind,
+      onMove: deltas => {
+        this.domWindow.manager.onDragWindowCallbacks.forEach(callback =>
+          callback(this.domWindow)
+        )
+        getPointerMove(
+          this.domWindow,
+          this.kind,
           this.oldDimensions,
           this.oldLocation
-        )(deltas),
+        )(deltas)
+      },
       onEnd: () => {
-        frame.manager.styles(['cursor', 'auto'])
-        frame.state('resizing', false)
+        domWindow.manager.styles(['cursor', 'auto'])
+        domWindow.state('resizing', false)
       },
     })
+    this.domWindow = domWindow
     this.kind = kind
     this.cursor = getCursorForHandleKind(kind)
 
@@ -40,21 +44,21 @@ export default class ResizeHandle extends PanHandle {
       [
         'width',
         ['top', 'bottom'].includes(kind)
-          ? `calc(100% - ${RESIZE_HANDLE_SIZE * 2}px)`
-          : `${RESIZE_HANDLE_SIZE}px`,
+          ? `calc(100% - ${domWindow.data.resizeHandleSize * 2}px)`
+          : `${domWindow.data.resizeHandleSize}px`,
       ],
       [
         'height',
         ['left', 'right'].includes(kind)
-          ? `calc(100% - ${RESIZE_HANDLE_SIZE * 2}px)`
-          : `${RESIZE_HANDLE_SIZE}px`,
+          ? `calc(100% - ${domWindow.data.resizeHandleSize * 2}px)`
+          : `${domWindow.data.resizeHandleSize}px`,
       ]
     )
   }
 }
 
-const createPointerMove = (
-  frame: Frame,
+const getPointerMove = (
+  domWindow: DOMWindow,
   kind: ResizeHandleKind,
   [oldWidth, oldHeight]: [number, number],
   [oldX, oldY]: [number, number]
@@ -62,7 +66,7 @@ const createPointerMove = (
   switch (kind) {
     case 'top':
       return ([_, deltaY]) => {
-        if (!frame.open) return
+        if (!domWindow.open) return
 
         let newHeight = oldHeight - deltaY
         let newY = oldY - (newHeight - oldHeight)
@@ -72,28 +76,28 @@ const createPointerMove = (
           newY = 0
         }
 
-        if (newHeight < MIN_FRAME_HEIGHT) {
-          newY -= MIN_FRAME_HEIGHT - newHeight
-          newHeight = MIN_FRAME_HEIGHT
+        if (newHeight < domWindow.data.minHeight) {
+          newY -= domWindow.data.minHeight - newHeight
+          newHeight = domWindow.data.minHeight
         }
 
-        frame.setHeight(newHeight)
-        frame.setY(newY)
+        domWindow.setHeight(newHeight)
+        domWindow.setY(newY)
       }
     case 'right':
       return ([deltaX]) => {
         let newWidth = oldWidth + deltaX
 
-        if (newWidth < MIN_FRAME_WIDTH) {
-          newWidth = MIN_FRAME_WIDTH
+        if (newWidth < domWindow.data.minWidth) {
+          newWidth = domWindow.data.minWidth
         }
 
-        const rightEdge = frame.data.location[0] + newWidth
+        const rightEdge = domWindow.data.location[0] + newWidth
         if (rightEdge > window.innerWidth) {
-          newWidth = window.innerWidth - frame.data.location[0]
+          newWidth = window.innerWidth - domWindow.data.location[0]
         }
 
-        frame.setWidth(newWidth)
+        domWindow.setWidth(newWidth)
       }
     case 'left':
       return ([deltaX]) => {
@@ -105,30 +109,30 @@ const createPointerMove = (
           newX = 0
         }
 
-        if (newWidth < MIN_FRAME_WIDTH) {
-          newX -= MIN_FRAME_WIDTH - newWidth
-          newWidth = MIN_FRAME_WIDTH
+        if (newWidth < domWindow.data.minWidth) {
+          newX -= domWindow.data.minWidth - newWidth
+          newWidth = domWindow.data.minWidth
         }
 
-        frame.setWidth(newWidth)
-        frame.setX(newX)
+        domWindow.setWidth(newWidth)
+        domWindow.setX(newX)
       }
     case 'bottom':
       return ([_, deltaY]) => {
-        if (!frame.open) return
+        if (!domWindow.open) return
 
         let newHeight = oldHeight + deltaY
 
-        if (newHeight < MIN_FRAME_HEIGHT) {
-          newHeight = MIN_FRAME_HEIGHT
+        if (newHeight < domWindow.data.minHeight) {
+          newHeight = domWindow.data.minHeight
         }
 
-        const bottomEdge = frame.data.location[1] + newHeight
+        const bottomEdge = domWindow.data.location[1] + newHeight
         if (bottomEdge > window.innerHeight) {
-          newHeight = window.innerHeight - frame.data.location[1]
+          newHeight = window.innerHeight - domWindow.data.location[1]
         }
 
-        frame.setHeight(newHeight)
+        domWindow.setHeight(newHeight)
       }
     case 'bottom-left':
       return ([deltaX, deltaY]) => {
@@ -140,55 +144,55 @@ const createPointerMove = (
           newX = 0
         }
 
-        if (newWidth < MIN_FRAME_WIDTH) {
-          newX -= MIN_FRAME_WIDTH - newWidth
-          newWidth = MIN_FRAME_WIDTH
+        if (newWidth < domWindow.data.minWidth) {
+          newX -= domWindow.data.minWidth - newWidth
+          newWidth = domWindow.data.minWidth
         }
 
-        frame.setWidth(newWidth)
-        frame.setX(newX)
+        domWindow.setWidth(newWidth)
+        domWindow.setX(newX)
 
-        if (frame.open) {
+        if (domWindow.open) {
           let newHeight = oldHeight + deltaY
-          if (newHeight < MIN_FRAME_HEIGHT) {
-            newHeight = MIN_FRAME_HEIGHT
+          if (newHeight < domWindow.data.minHeight) {
+            newHeight = domWindow.data.minHeight
           }
 
-          const bottomEdge = frame.data.location[1] + newHeight
+          const bottomEdge = domWindow.data.location[1] + newHeight
           if (bottomEdge > window.innerHeight) {
-            newHeight = window.innerHeight - frame.data.location[1]
+            newHeight = window.innerHeight - domWindow.data.location[1]
           }
 
-          frame.setHeight(newHeight)
+          domWindow.setHeight(newHeight)
         }
       }
     case 'bottom-right':
       return ([deltaX, deltaY]) => {
         let newWidth = oldWidth + deltaX
 
-        if (newWidth < MIN_FRAME_WIDTH) {
-          newWidth = MIN_FRAME_WIDTH
+        if (newWidth < domWindow.data.minWidth) {
+          newWidth = domWindow.data.minWidth
         }
 
-        const rightEdge = frame.data.location[0] + newWidth
+        const rightEdge = domWindow.data.location[0] + newWidth
         if (rightEdge > window.innerWidth) {
-          newWidth = window.innerWidth - frame.data.location[0]
+          newWidth = window.innerWidth - domWindow.data.location[0]
         }
 
-        frame.setWidth(newWidth)
+        domWindow.setWidth(newWidth)
 
-        if (frame.open) {
+        if (domWindow.open) {
           let newHeight = oldHeight + deltaY
-          if (newHeight < MIN_FRAME_HEIGHT) {
-            newHeight = MIN_FRAME_HEIGHT
+          if (newHeight < domWindow.data.minHeight) {
+            newHeight = domWindow.data.minHeight
           }
 
-          const bottomEdge = frame.data.location[1] + newHeight
+          const bottomEdge = domWindow.data.location[1] + newHeight
           if (bottomEdge > window.innerHeight) {
-            newHeight = window.innerHeight - frame.data.location[1]
+            newHeight = window.innerHeight - domWindow.data.location[1]
           }
 
-          frame.setHeight(newHeight)
+          domWindow.setHeight(newHeight)
         }
       }
     case 'top-left':
@@ -201,15 +205,15 @@ const createPointerMove = (
           newX = 0
         }
 
-        if (newWidth < MIN_FRAME_WIDTH) {
-          newX -= MIN_FRAME_WIDTH - newWidth
-          newWidth = MIN_FRAME_WIDTH
+        if (newWidth < domWindow.data.minWidth) {
+          newX -= domWindow.data.minWidth - newWidth
+          newWidth = domWindow.data.minWidth
         }
 
-        frame.setWidth(newWidth)
-        frame.setX(newX)
+        domWindow.setWidth(newWidth)
+        domWindow.setX(newX)
 
-        if (frame.open) {
+        if (domWindow.open) {
           let newHeight = oldHeight - deltaY
           let newY = oldY - (newHeight - oldHeight)
 
@@ -218,29 +222,29 @@ const createPointerMove = (
             newY = 0
           }
 
-          if (newHeight < MIN_FRAME_HEIGHT) {
-            newY -= MIN_FRAME_HEIGHT - newHeight
-            newHeight = MIN_FRAME_HEIGHT
+          if (newHeight < domWindow.data.minHeight) {
+            newY -= domWindow.data.minHeight - newHeight
+            newHeight = domWindow.data.minHeight
           }
 
-          frame.setHeight(newHeight)
-          frame.setY(newY)
+          domWindow.setHeight(newHeight)
+          domWindow.setY(newY)
         }
       }
     case 'top-right':
       return ([deltaX, deltaY]) => {
         let newWidth = oldWidth + deltaX
-        if (newWidth < MIN_FRAME_WIDTH) {
-          newWidth = MIN_FRAME_WIDTH
+        if (newWidth < domWindow.data.minWidth) {
+          newWidth = domWindow.data.minWidth
         }
-        const rightEdge = frame.data.location[0] + newWidth
+        const rightEdge = domWindow.data.location[0] + newWidth
         if (rightEdge > window.innerWidth) {
-          newWidth = window.innerWidth - frame.data.location[0]
+          newWidth = window.innerWidth - domWindow.data.location[0]
         }
 
-        frame.setWidth(newWidth)
+        domWindow.setWidth(newWidth)
 
-        if (frame.open) {
+        if (domWindow.open) {
           let newHeight = oldHeight - deltaY
           let newY = oldY - (newHeight - oldHeight)
 
@@ -249,13 +253,13 @@ const createPointerMove = (
             newY = 0
           }
 
-          if (newHeight < MIN_FRAME_HEIGHT) {
-            newY -= MIN_FRAME_HEIGHT - newHeight
-            newHeight = MIN_FRAME_HEIGHT
+          if (newHeight < domWindow.data.minHeight) {
+            newY -= domWindow.data.minHeight - newHeight
+            newHeight = domWindow.data.minHeight
           }
 
-          frame.setHeight(newHeight)
-          frame.setY(newY)
+          domWindow.setHeight(newHeight)
+          domWindow.setY(newY)
         }
       }
   }

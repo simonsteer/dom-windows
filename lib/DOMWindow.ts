@@ -1,35 +1,55 @@
-import { FrameData, ResizeHandleKind } from 'types'
-import {
-  CLOSED_FRAME_HEIGHT,
-  getDragHandleHeight,
-  RESIZE_HANDLES,
-  RESIZE_HANDLE_SIZE,
-} from 'vars'
+import { DOMWindowData, ResizeHandleKind, DOMWindowConfig } from './types'
+import { RESIZE_HANDLES } from './vars'
+import { getCollapsedHeight } from './utils'
 import DragHandle from './DragHandle'
 import El from './El'
-import FrameManager from './FrameManager'
+import DOMWindows from './DOMWindows'
 import ResizeHandle from './ResizeHandle'
 
-export default class Frame extends El {
-  manager: FrameManager
-  data: FrameData
-
+export default class DOMWindow extends El {
+  manager: DOMWindows
+  data: DOMWindowData
   open = true
   dragging = false
   resizing = false
 
   openHeight: string
 
-  constructor(manager: FrameManager, data: FrameData) {
+  constructor(manager: DOMWindows, config: DOMWindowConfig) {
     super('div')
+
     this.manager = manager
-    this.data = data
-    this.attrs(['class', 'dom-windows--frame'])
+    const {
+      children,
+      id,
+      title,
+      sizeLocks = this.manager.defaults.sizeLocks,
+      dimensions = this.manager.defaults.dimensions,
+      location = this.manager.defaults.location,
+      resizeHandleSize = this.manager.defaults.resizeHandleSize,
+      dragHandleHeight = this.manager.defaults.dragHandleHeight,
+      minHeight = this.manager.defaults.minHeight,
+      minWidth = this.manager.defaults.minWidth,
+      buttons = this.manager.defaults.buttons,
+    } = config
 
-    const [x, y] = data.location
-    const [width, height] = data.dimensions
+    this.data = {
+      children,
+      id,
+      sizeLocks,
+      title,
+      dimensions,
+      location,
+      resizeHandleSize,
+      dragHandleHeight,
+      minHeight,
+      minWidth,
+      buttons,
+    }
+    this.attrs(['class', 'dom-windows--window'])
 
-    this.openHeight = `${width}px`
+    const [x, y] = this.data.location
+    const [width, height] = this.data.dimensions
 
     this.on('pointerdown', e => {
       e.preventDefault()
@@ -44,6 +64,8 @@ export default class Frame extends El {
       ['height', `${height}px`]
     )
 
+    this.openHeight = `${height}px`
+
     const handles = RESIZE_HANDLES.reduce(
       (acc, kind) => ({ ...acc, [kind]: new ResizeHandle(this, kind) }),
       {} as { [Kind in ResizeHandleKind]: ResizeHandle }
@@ -53,11 +75,11 @@ export default class Frame extends El {
       .attrs(['class', 'dom-windows--children-wrapper'])
       .styles(
         ['width', `100%`],
-        ['height', `calc(100% - ${getDragHandleHeight()}px)`],
+        ['height', `calc(100% - ${this.data.dragHandleHeight}px)`],
         ['position', 'relative'],
         ['overflow', 'scroll']
       )
-    childrenWrapper.el.append(data.children)
+    childrenWrapper.el.append(config.children)
 
     this.addChildren(
       handles['top-left'],
@@ -67,8 +89,8 @@ export default class Frame extends El {
       new El('div')
         .attrs(['class', 'dom-windows--content-wrapper'])
         .styles(
-          ['width', `calc(100% - ${RESIZE_HANDLE_SIZE * 2}px)`],
-          ['height', `calc(100% - ${RESIZE_HANDLE_SIZE * 2}px)`]
+          ['width', `calc(100% - ${this.data.resizeHandleSize * 2}px)`],
+          ['height', `calc(100% - ${this.data.resizeHandleSize * 2}px)`]
         )
         .addChildren(new DragHandle(this), childrenWrapper),
       handles['right'],
@@ -76,10 +98,9 @@ export default class Frame extends El {
       handles['bottom'],
       handles['bottom-right']
     )
-
-    this.state('dragging', false)
-    this.state('resizing', false)
-    this.state('open', true)
+      .state('dragging', false)
+      .state('resizing', false)
+      .state('open', true)
   }
 
   setLocation = (x: number, y: number) => {
@@ -122,7 +143,10 @@ export default class Frame extends El {
 
   collapse = () => {
     this.openHeight = this.el.style.height
-    this.el.style.height = `${CLOSED_FRAME_HEIGHT}px`
+    this.el.style.height = `${getCollapsedHeight(
+      this.data.dragHandleHeight,
+      this.data.resizeHandleSize
+    )}px`
     this.state('open', false)
   }
 
@@ -135,7 +159,9 @@ export default class Frame extends El {
       node.setAttribute(`data-${attr}`, value + '')
     })
     this[attr] = value
+
+    return this
   }
 
-  remove = () => this.manager.remove(this.data.id)
+  remove = () => this.manager.remove(this)
 }

@@ -1,2 +1,1 @@
-export { default } from './FrameManager'
-export { FrameData } from 'types'
+export { default } from './DOMWindows'
