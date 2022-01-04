@@ -13,32 +13,52 @@ export default function createFrame(
   const [x, y] = data.location
   const [width, height] = data.dimensions
 
-  const el = document.createElement('div')
-  el.className = `managed-frame`
+  const frameEl = document.createElement('div')
+  frameEl.className = `dom-windows--frame`
 
-  el.style.position = 'absolute'
-  el.style.display = 'flex'
-  el.style.flexWrap = 'wrap'
-  el.style.left = `${x}px`
-  el.style.top = `${y}px`
-  el.style.width = `${width}px`
-  el.style.height = `${height}px`
+  frameEl.style.position = 'absolute'
+  frameEl.style.display = 'flex'
+  frameEl.style.flexWrap = 'wrap'
+  frameEl.style.left = `${x}px`
+  frameEl.style.top = `${y}px`
+  frameEl.style.width = `${width}px`
+  frameEl.style.height = `${height}px`
 
-  let openHeight = el.style.height
+  const childrenWrapper = createFrameChildrenWrapper()
+  childrenWrapper.append(data.children)
+
+  let openHeight = frameEl.style.height
   let isOpen = true
 
   const getIsOpen = () => isOpen
 
   const open = () => {
-    el.style.height = openHeight
+    frameEl.style.height = openHeight
+    updateAttr('open', true)
     isOpen = true
   }
 
   const close = () => {
-    openHeight = el.style.height
-    el.style.height = `${CLOSED_FRAME_HEIGHT}px`
+    openHeight = frameEl.style.height
+    frameEl.style.height = `${CLOSED_FRAME_HEIGHT}px`
+    updateAttr('open', false)
     isOpen = false
   }
+
+  const updateAttr = (
+    attr: 'dragging' | 'resizing' | 'open',
+    value: boolean
+  ) => {
+    const nodes = Array.from(
+      frameEl.querySelectorAll('[class^=dom-windows]')
+    ).concat(frameEl)
+    nodes.forEach(node => {
+      node.setAttribute(`data-${attr}`, value + '')
+    })
+  }
+  updateAttr('dragging', false)
+  updateAttr('resizing', false)
+  updateAttr('open', true)
 
   const remove = () => manager.remove(data.id)
 
@@ -49,12 +69,12 @@ export default function createFrame(
 
   const setX = (x: number) => {
     data.location[0] = x
-    el.style.left = x + 'px'
+    frameEl.style.left = x + 'px'
   }
 
   const setY = (y: number) => {
     data.location[1] = y
-    el.style.top = y + 'px'
+    frameEl.style.top = y + 'px'
   }
 
   const setDimensions = (width: number, height: number) => {
@@ -66,23 +86,29 @@ export default function createFrame(
     openHeight = height + 'px'
     data.dimensions[1] = height
     if (isOpen) {
-      el.style.height = openHeight
+      frameEl.style.height = openHeight
     }
   }
 
   const setWidth = (width: number) => {
     data.dimensions[0] = width
-    el.style.width = width + 'px'
+    frameEl.style.width = width + 'px'
   }
-
-  const childrenWrapper = createFrameChildrenWrapper()
-  childrenWrapper.append(data.children)
 
   const resizeHandles = RESIZE_HANDLES.reduce(
     (map, handle) => ({
       ...map,
       [handle]: createResizeHandle(
-        { root: manager.el, data, setWidth, setHeight, setX, setY, getIsOpen },
+        {
+          root: manager.el,
+          data,
+          setWidth,
+          setHeight,
+          setX,
+          setY,
+          getIsOpen,
+          updateAttr,
+        },
         handle
       ),
     }),
@@ -95,13 +121,14 @@ export default function createFrame(
     open,
     getIsOpen,
     remove,
-    el,
+    el: frameEl,
+    updateAttr,
   })
 
   const contentWrapper = createContentWrapper()
   contentWrapper.append(dragHandle, childrenWrapper)
 
-  el.append(
+  frameEl.append(
     resizeHandles['top-left'][0],
     resizeHandles['top'][0],
     resizeHandles['top-right'][0],
@@ -115,12 +142,12 @@ export default function createFrame(
 
   const pointerdown = (e: PointerEvent) => {
     e.preventDefault()
-    el.style.zIndex = performance.now() + ''
+    frameEl.style.zIndex = performance.now() + ''
   }
-  el.addEventListener('pointerdown', pointerdown)
+  frameEl.addEventListener('pointerdown', pointerdown)
 
   const teardown = () => {
-    el.removeEventListener('pointerdown', pointerdown)
+    frameEl.removeEventListener('pointerdown', pointerdown)
     teardownDragHandle()
     for (let h in resizeHandles) {
       resizeHandles[h][1]()
@@ -128,7 +155,7 @@ export default function createFrame(
   }
 
   return {
-    el,
+    el: frameEl,
     teardown,
     setDimensions,
     setWidth,
@@ -140,6 +167,7 @@ export default function createFrame(
     open,
     close,
     remove,
+    updateAttr,
     data,
   }
 }

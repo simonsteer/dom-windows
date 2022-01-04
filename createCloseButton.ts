@@ -2,7 +2,7 @@ import { Frame } from 'types'
 
 export default function createCloseButton(frame: Pick<Frame, 'remove'>) {
   const el = document.createElement('button')
-  el.className = 'frame-close-button'
+  el.className = 'dom-windows--close-button'
   el.append('x')
 
   function onClick(e: MouseEvent) {

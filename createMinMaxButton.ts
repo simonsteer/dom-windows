@@ -4,7 +4,7 @@ export default function createMinMaxButton(
   frame: Pick<Frame, 'getIsOpen' | 'close' | 'open'>
 ) {
   const el = document.createElement('button')
-  el.className = 'frame-min-max-button'
+  el.className = 'dom-windows--min-max-button'
   el.append('-')
 
   function onClick(e: MouseEvent) {

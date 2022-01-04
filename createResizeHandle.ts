@@ -4,7 +4,13 @@ import { MIN_FRAME_HEIGHT, MIN_FRAME_WIDTH, RESIZE_HANDLE_SIZE } from 'vars'
 export default function createResizeHandle(
   frame: { root: HTMLElement } & Pick<
     Frame,
-    'setWidth' | 'setHeight' | 'data' | 'setX' | 'setY' | 'getIsOpen'
+    | 'setWidth'
+    | 'setHeight'
+    | 'data'
+    | 'setX'
+    | 'setY'
+    | 'getIsOpen'
+    | 'updateAttr'
   >,
   kind: ResizeHandleKind
 ) {
@@ -13,12 +19,14 @@ export default function createResizeHandle(
 
   function pointerDown(e: PointerEvent) {
     e.preventDefault()
+    frame.updateAttr('resizing', true)
     const panStart = [e.screenX, e.screenY] as [number, number]
 
     const pointermove = createPointerMove(frame, kind, panStart)
 
     const pointerup = e => {
       e.preventDefault()
+      frame.updateAttr('resizing', false)
       frame.root.style.cursor = 'auto'
       window.removeEventListener('pointermove', pointermove)
       window.removeEventListener('pointerup', pointerup)
@@ -31,7 +39,10 @@ export default function createResizeHandle(
 
   el.addEventListener('pointerdown', pointerDown)
 
-  return [el, () => el.removeEventListener('pointerdown', pointerDown)] as const
+  return [el, () => el.removeEventListener('pointerdown', pointerDown)] as [
+    HTMLElement,
+    () => void
+  ]
 }
 
 const createPointerMove = (
@@ -289,7 +300,7 @@ const createResizeHandleElement = (
   cursor: ReturnType<typeof getCursorForHandleKind>
 ) => {
   const el = document.createElement('div')
-  el.className = `frame-resize-handle-${kind}`
+  el.className = `dom-windows--resize-handle dom-windows--resize-handle-${kind}`
 
   el.style.cursor = cursor
 

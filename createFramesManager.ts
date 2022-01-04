@@ -3,7 +3,7 @@ import createFrame from 'createFrame'
 
 export default function createFramesManager() {
   const el = document.createElement('div')
-  el.className = 'frames-manager'
+  el.className = 'dom-windows'
   el.style.position = 'relative'
   el.style.width = '100vw'
   el.style.height = '100vh'

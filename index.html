@@ -13,14 +13,14 @@
         Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
     }
 
-    .frames-manager {
+    .dom-windows {
       background: linear-gradient(
         45deg,
         rgba(31, 32, 33, 1) 0%,
         rgba(54, 55, 56, 1) 100%
       );
     }
-    .managed-frame {
+    .dom-windows--frame {
       background: linear-gradient(
         45deg,
         rgba(255, 255, 255, 0.7) 0%,
@@ -28,43 +28,50 @@
         rgba(255, 255, 255, 0.7) 75%,
         rgba(255, 255, 255, 0.15) 100%
       );
-      border: 1px solid white;
+      /* border: 1px solid white; */
       border-radius: 5px;
       overflow: hidden;
       color: white;
       -webkit-box-shadow: 5px 5px 13px -2px rgba(0, 0, 0, 0.67);
       box-shadow: 5px 5px 13px -2px rgba(0, 0, 0, 0.67);
     }
-    .frame-drag-handle {
+    .dom-windows--frame[data-resizing='false'] {
+      transition: height 0.2s;
+    }
+    .dom-windows--drag-handle {
       border-bottom: 1px solid white;
       border-top-left-radius: 3px;
       border-top-right-radius: 3px;
       background: rgba(123, 123, 123, 0.8);
+      transition: border-bottom-color 0.2s;
     }
-    .frame-children-wrapper {
+    .dom-windows--drag-handle[data-open='false'] {
+      border-bottom-color: transparent;
+    }
+    .dom-windows--children-wrapper {
       border-bottom-left-radius: 3px;
       border-bottom-right-radius: 3px;
-      background: rgba(123, 123, 123, 0.8);
+      background: rgba(123, 123, 123, 0.84);
       -ms-overflow-style: none;
       scrollbar-width: none;
     }
-    .frame-children-wrapper::-webkit-scrollbar {
+    .dom-windows--children-wrapper::-webkit-scrollbar {
       display: none;
     }
-    .frame-drag-handle button {
+    .dom-windows--drag-handle button {
       cursor: pointer;
       background: transparent;
       border: none;
       outline: none;
       color: white;
     }
-    .frame-drag-handle button:hover {
+    .dom-windows--drag-handle button:hover {
       opacity: 0.6;
     }
-    .frame-button-wrapper {
+    .dom-windows--button-wrapper {
       padding-right: 5px;
     }
-    .frame-title {
+    .dom-windows--title {
       padding-left: 5px;
     }
   </style>

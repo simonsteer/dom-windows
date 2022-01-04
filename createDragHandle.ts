@@ -6,11 +6,18 @@ import { Frame } from 'types'
 export default function createDragHandle(
   frame: Pick<
     Frame,
-    'setLocation' | 'data' | 'close' | 'open' | 'getIsOpen' | 'remove' | 'el'
+    | 'setLocation'
+    | 'data'
+    | 'close'
+    | 'open'
+    | 'getIsOpen'
+    | 'remove'
+    | 'el'
+    | 'updateAttr'
   >
 ) {
   const el = document.createElement('div')
-  el.className = 'frame-drag-handle'
+  el.className = 'dom-windows--drag-handle'
   el.style.width = `100%`
   el.style.display = `flex`
   el.style.justifyContent = `space-between`
@@ -20,13 +27,14 @@ export default function createDragHandle(
 
   function pointerdown(e: PointerEvent) {
     e.preventDefault()
-    // frame.el.style.zIndex = performance.now() + ''
+    frame.updateAttr('dragging', true)
 
     const panStart = [e.screenX, e.screenY] as [number, number]
     const [oldX, oldY] = frame.data.location
 
     const pointermove = e => {
       e.preventDefault()
+
       const [deltaX, deltaY] = [
         e.screenX - panStart[0],
         e.screenY - panStart[1],
@@ -46,6 +54,8 @@ export default function createDragHandle(
 
     const pointerup = e => {
       e.preventDefault()
+      frame.updateAttr('dragging', false)
+
       window.removeEventListener('pointermove', pointermove)
       window.removeEventListener('pointerup', pointerup)
     }
@@ -56,14 +66,14 @@ export default function createDragHandle(
   el.addEventListener('pointerdown', pointerdown)
 
   const title = document.createElement('span')
-  title.className = 'frame-title'
+  title.className = 'dom-windows--title'
   title.append(frame.data.title)
 
   const [minMaxButton, teardownMinMaxButton] = createMinMaxButton(frame)
   const [closeButton, teardownCloseButton] = createCloseButton(frame)
 
   const buttonWrapper = document.createElement('div')
-  buttonWrapper.className = 'frame-button-wrapper'
+  buttonWrapper.className = 'dom-windows--button-wrapper'
   buttonWrapper.append(minMaxButton, closeButton)
 
   el.append(title, buttonWrapper)
