@@ -1,2 +1,2 @@
 # dom-windows
-small DOM-manipulation library for creating draggable/resizable "windows" like you would 
+DOM-manipulation library for creating draggable/resizable/collapsible "windows" inside of a parent container element

@@ -67,7 +67,8 @@ export default class DOMWindow extends El {
           .styles(
             ['position', 'relative'],
             ['display', `flex`],
-            ['flexDirection', 'column']
+            ['flexDirection', 'column'],
+            ['flex', '1']
           )
           .addChildren(
             new DragHandle(this),
