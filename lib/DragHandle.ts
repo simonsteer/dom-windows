@@ -20,7 +20,7 @@ export default class DragHandle extends PanHandle {
         const newY = oldY + deltaY
 
         this.domWindow.setLocation(newX, newY)
-        this.domWindow.manager.onDragWindowCallbacks.forEach(callback =>
+        this.domWindow.manager.callbacks.onDragWindow.forEach(callback =>
           callback(this.domWindow)
         )
       },
@@ -30,29 +30,27 @@ export default class DragHandle extends PanHandle {
     this.domWindow = domWindow
     this.prevLocation = [...domWindow.data.location]
 
-    this.attrs(['class', 'dom-windows--drag-handle']).styles(
-      ['width', `100%`],
-      ['display', `flex`],
-      ['justifyContent', `space-between`],
-      ['alignItems', `center`],
-      ['height', `${this.domWindow.data.dragHandleHeight}px`],
-      ['cursor', `move`]
-    )
-
-    const title = new El('span')
-      .attrs(['class', 'dom-windows--title'])
+    this.attrs(['class', 'dom-windows--drag-handle'])
+      .styles(
+        ['width', `100%`],
+        ['height', `${this.domWindow.data.dragHandleHeight}px`],
+        ['cursor', `move`]
+      )
       .addChildren(
-        typeof this.domWindow.data.title === 'string'
-          ? new Text(this.domWindow.data.title)
-          : this.domWindow.data.title
-      ).el
-
-    this.addChildren(title, createButtons(this.domWindow))
+        new El('span')
+          .attrs(['class', 'dom-windows--title'])
+          .addChildren(
+            typeof this.domWindow.data.title === 'string'
+              ? new Text(this.domWindow.data.title)
+              : this.domWindow.data.title
+          ).el,
+        createButtons(this.domWindow)
+      )
   }
 }
 
 function createButtons(domWindow: DOMWindow) {
-  const buttons = new El('div').attrs(['class', 'dom-windows--button-wrapper'])
+  const buttons = new El('span').attrs(['class', 'dom-windows--buttons'])
   if (domWindow.data.buttons) {
     buttons.addChildren(domWindow.data.buttons)
     return buttons
@@ -61,7 +59,7 @@ function createButtons(domWindow: DOMWindow) {
   const maxText = new Text('+')
   const minText = new Text('-')
   const minimizeButton = new El('button')
-    .attrs(['class', 'dom-windows--button dom-windows--minimize-button'])
+    .attrs(['class', 'dom-windows--button'])
     .addChildren(minText)
     .on('click', e => {
       e.preventDefault()
@@ -75,7 +73,7 @@ function createButtons(domWindow: DOMWindow) {
     })
 
   const removeButton = new El('button')
-    .attrs(['class', 'dom-windows--button dom-windows--remove-button'])
+    .attrs(['class', 'dom-windows--button'])
     .on('click', e => {
       e.preventDefault()
       domWindow.remove()

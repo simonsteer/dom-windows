@@ -11,53 +11,103 @@ export default class ResizeHandle extends PanHandle {
   constructor(domWindow: DOMWindow, kind: ResizeHandleKind) {
     super('div', {
       onStart: () => {
-        this.oldDimensions = [...domWindow.data.dimensions]
-        this.oldLocation = [...domWindow.data.location]
+        this.oldDimensions = [...this.domWindow.data.dimensions]
+        this.oldLocation = [...this.domWindow.data.location]
         this.domWindow.manager.styles(['cursor', this.cursor])
         this.domWindow.state('resizing', true)
       },
       onMove: deltas => {
-        this.domWindow.manager.onDragWindowCallbacks.forEach(callback =>
-          callback(this.domWindow)
-        )
-        getPointerMove(
+        resizeDomWindow(
           this.domWindow,
           this.kind,
           this.oldDimensions,
           this.oldLocation
         )(deltas)
+        this.domWindow.manager.callbacks.onResizeWindow.forEach(callback =>
+          callback(this.domWindow)
+        )
       },
       onEnd: () => {
-        domWindow.manager.styles(['cursor', 'auto'])
-        domWindow.state('resizing', false)
+        this.domWindow.manager.styles(['cursor', 'auto'])
+        this.domWindow.state('resizing', false)
       },
     })
     this.domWindow = domWindow
     this.kind = kind
-    this.cursor = getCursorForHandleKind(kind)
+    this.cursor = getCursorForHandleKind(this.kind)
 
     this.attrs([
       'class',
       `dom-windows--resize-handle dom-windows--resize-handle-${kind}`,
     ]).styles(
       ['cursor', this.cursor],
+      ['position', 'absolute'],
+      ...getPosition(this.kind, this.domWindow.data.resizeHandleSize),
       [
         'width',
-        ['top', 'bottom'].includes(kind)
-          ? `calc(100% - ${domWindow.data.resizeHandleSize * 2}px)`
-          : `${domWindow.data.resizeHandleSize}px`,
+        ['top', 'bottom'].includes(this.kind)
+          ? `calc(100% - ${this.domWindow.data.resizeHandleSize * 2}px)`
+          : `${this.domWindow.data.resizeHandleSize}px`,
       ],
       [
         'height',
         ['left', 'right'].includes(kind)
-          ? `calc(100% - ${domWindow.data.resizeHandleSize * 2}px)`
-          : `${domWindow.data.resizeHandleSize}px`,
+          ? `calc(100% - ${this.domWindow.data.resizeHandleSize * 2}px)`
+          : `${this.domWindow.data.resizeHandleSize}px`,
       ]
     )
   }
 }
 
-const getPointerMove = (
+const getPosition = (
+  kind: ResizeHandleKind,
+  handleSize: number
+): [string, string][] => {
+  switch (kind) {
+    case 'top':
+      return [
+        ['top', '0px'],
+        ['left', `${handleSize}px`],
+      ]
+    case 'right':
+      return [
+        ['right', '0px'],
+        ['top', `${handleSize}px`],
+      ]
+    case 'bottom':
+      return [
+        ['bottom', '0px'],
+        ['left', `${handleSize}px`],
+      ]
+    case 'left':
+      return [
+        ['left', '0px'],
+        ['top', `${handleSize}px`],
+      ]
+    case 'top-left':
+      return [
+        ['top', '0px'],
+        ['left', '0px'],
+      ]
+    case 'bottom-left':
+      return [
+        ['bottom', '0px'],
+        ['left', '0px'],
+      ]
+    case 'top-right':
+      return [
+        ['top', '0px'],
+        ['right', '0px'],
+      ]
+    case 'bottom-right':
+      return [
+        ['bottom', '0px'],
+        ['right', '0px'],
+      ]
+  }
+}
+
+const resizeDomWindow = (
   domWindow: DOMWindow,
   kind: ResizeHandleKind,
   [oldWidth, oldHeight]: [number, number],

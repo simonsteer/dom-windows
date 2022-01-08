@@ -7,10 +7,6 @@ export const DOM_WINDOW_DATA_DEFAULTS: DOMWindowDataDefaults = {
   minWidth: 200,
   dimensions: [300, 400],
   location: [100, 50],
-  sizeLocks: [
-    [null, null],
-    [null, null],
-  ],
   buttons: undefined,
 }
 

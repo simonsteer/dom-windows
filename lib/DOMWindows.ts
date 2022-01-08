@@ -1,8 +1,13 @@
-import { DOMWindowConfig, DOMWindowDataDefaults } from './types'
+import {
+  DOMWindowConfig,
+  DOMWindowDataDefaults,
+  DOMWindowCallback,
+} from './types'
 import El from './El'
 import DOMWindow from './DOMWindow'
 import { DOM_WINDOW_DATA_DEFAULTS } from './vars'
 
+// TODO: hide El class usage behind a private field instead of via extension
 export default class DOMWindows extends El {
   defaults: DOMWindowDataDefaults
 
@@ -23,25 +28,51 @@ export default class DOMWindows extends El {
 
   remove = (domWindow: DOMWindow) => {
     this.removeChild(domWindow)
+    this.event('onResizeWindow', domWindow)
   }
 
-  onDragWindowCallbacks: ((domWindow: DOMWindow) => void)[] = []
-  onDragWindow = (callback: (domWindow: DOMWindow) => void) => {
-    this.onDragWindowCallbacks.push(callback)
-    return () => {
-      this.onDragWindowCallbacks = this.onDragWindowCallbacks.filter(
-        c => c !== callback
-      )
-    }
+  callbacks = {
+    onDragWindow: [] as DOMWindowCallback[],
+    onResizeWindow: [] as DOMWindowCallback[],
+    onBeforeCollapseWindow: [] as DOMWindowCallback[],
+    onCollapseWindow: [] as DOMWindowCallback[],
+    onBeforeExpandWindow: [] as DOMWindowCallback[],
+    onExpandWindow: [] as DOMWindowCallback[],
+    onRemoveWindow: [] as DOMWindowCallback[],
   }
 
-  onResizeWindowCallbacks: ((domWindow: DOMWindow) => void)[] = []
-  onResizeWindow = (callback: (domWindow: DOMWindow) => void) => {
-    this.onResizeWindowCallbacks.push(callback)
+  event = (type: keyof DOMWindows['callbacks'], domWindow: DOMWindow) => {
+    this.callbacks[type].forEach(callback => callback(domWindow))
+  }
+
+  onDragWindow = (callback: DOMWindowCallback) =>
+    this.domWindowCallback('onDragWindow', callback)
+
+  onResizeWindow = (callback: DOMWindowCallback) =>
+    this.domWindowCallback('onResizeWindow', callback)
+
+  onBeforeCollapseWindow = (callback: DOMWindowCallback) =>
+    this.domWindowCallback('onBeforeCollapseWindow', callback)
+
+  onCollapseWindow = (callback: DOMWindowCallback) =>
+    this.domWindowCallback('onCollapseWindow', callback)
+
+  onBeforeExpandWindow = (callback: DOMWindowCallback) =>
+    this.domWindowCallback('onBeforeExpandWindow', callback)
+
+  onExpandWindow = (callback: DOMWindowCallback) =>
+    this.domWindowCallback('onExpandWindow', callback)
+
+  onRemoveWindow = (callback: DOMWindowCallback) =>
+    this.domWindowCallback('onRemoveWindow', callback)
+
+  private domWindowCallback = (
+    type: keyof DOMWindows['callbacks'],
+    callback: DOMWindowCallback
+  ) => {
+    this.callbacks[type].push(callback)
     return () => {
-      this.onResizeWindowCallbacks = this.onResizeWindowCallbacks.filter(
-        c => c !== callback
-      )
+      this.callbacks[type] = this.callbacks[type].filter(c => c !== callback)
     }
   }
 }

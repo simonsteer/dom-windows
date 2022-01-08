@@ -1,3 +1,5 @@
+import DOMWindow from './DOMWindow'
+
 export type DOMWindowData = {
   id: string
   title: string | Node
@@ -9,17 +11,14 @@ export type DOMWindowData = {
   dragHandleHeight: number
   minWidth: number
   minHeight: number
-  sizeLocks: [
-    x: [left: string | null, right: string | null],
-    y: [top: string | null, bottom: string | null]
-  ]
 }
+
+export type DOMWindowCallback = (domWindow: DOMWindow) => void
 
 export type DOMWindowDataDefaults = Pick<
   DOMWindowData,
   | 'dimensions'
   | 'location'
-  | 'sizeLocks'
   | 'resizeHandleSize'
   | 'dragHandleHeight'
   | 'minWidth'

@@ -9,78 +9,37 @@
   </head>
   <style>
     body {
-      font-family: 'Courier New', Courier, monospace;
-    }
-
-    .dom-windows {
-      background: linear-gradient(
-        45deg,
-        rgba(31, 32, 33, 1) 0%,
-        rgba(54, 55, 56, 1) 100%
-      );
-      width: 100vw;
-      height: 100vh;
-      overflow: hidden;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      letter-spacing: 0.05em;
     }
     .dom-windows--window {
-      background: linear-gradient(
-        45deg,
-        rgba(255, 255, 255, 0.7) 0%,
-        rgba(255, 255, 255, 0) 50%,
-        rgba(255, 255, 255, 0.7) 75%,
-        rgba(255, 255, 255, 0) 100%
-      );
-      border-radius: 5px;
-      overflow: hidden;
-      color: white;
-      -webkit-box-shadow: 5px 5px 10px -2px rgba(0, 0, 0, 0.45);
-      box-shadow: 5px 5px 10px -2px rgba(0, 0, 0, 0.45);
+      background: white;
+      border: 1px solid coral;
+      color: coral;
     }
     .dom-windows--window[data-resizing='false'] {
       transition: height 0.2s;
     }
-    .dom-windows--drag-handle {
-      background: rgba(123, 123, 123, 0.75);
-      border-bottom: 1px solid white;
-      border-top-left-radius: 3px;
-      border-top-right-radius: 3px;
-      transition: border-bottom-color 0.2s, border-radius 0.2s;
-    }
-    .dom-windows--drag-handle[data-open='false'] {
-      border-bottom-color: transparent;
-      border-bottom-left-radius: 3px;
-      border-bottom-right-radius: 3px;
-    }
-    .dom-windows--children-wrapper {
-      background: rgba(123, 123, 123, 0.75);
-      border-bottom-left-radius: 3px;
-      border-bottom-right-radius: 3px;
+    .dom-windows--children {
       -ms-overflow-style: none;
       scrollbar-width: none;
-      transition: filter 0.2s;
-      filter: blur(0px);
-    }
-    .dom-windows--children-wrapper[data-open='false'] {
-      filter: blur(10px);
-    }
-    .dom-windows--children-wrapper::-webkit-scrollbar {
-      display: none;
-    }
-    .dom-windows--button {
-      cursor: pointer;
-      background: transparent;
-      border: none;
-      outline: none;
-      color: white;
-    }
-    .dom-windows--button:hover {
-      opacity: 0.6;
-    }
-    .dom-windows--button:last-child {
-      margin-right: 5px;
     }
     .dom-windows--title {
-      padding-left: 5px;
+      padding-left: 14px;
+    }
+    .dom-windows--button {
+      border: 0px;
+      outline: none;
+      background: transparent;
+      margin-right: 7px;
+    }
+    .dom-windows--drag-handle {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .dom-windows--resize-handle {
+      background: whitesmoke;
     }
   </style>
   <body>

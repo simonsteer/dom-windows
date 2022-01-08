@@ -1,6 +1,5 @@
-import { DOMWindowData, ResizeHandleKind, DOMWindowConfig } from './types'
+import { DOMWindowData, DOMWindowConfig } from './types'
 import { RESIZE_HANDLES } from './vars'
-import { getCollapsedHeight } from './utils'
 import DragHandle from './DragHandle'
 import El from './El'
 import DOMWindows from './DOMWindows'
@@ -14,6 +13,7 @@ export default class DOMWindow extends El {
   resizing = false
 
   openHeight: string
+  resizeHandles: ResizeHandle[]
 
   constructor(manager: DOMWindows, config: DOMWindowConfig) {
     super('div')
@@ -23,7 +23,6 @@ export default class DOMWindow extends El {
       children,
       id,
       title,
-      sizeLocks = this.manager.defaults.sizeLocks,
       dimensions = this.manager.defaults.dimensions,
       location = this.manager.defaults.location,
       resizeHandleSize = this.manager.defaults.resizeHandleSize,
@@ -36,7 +35,6 @@ export default class DOMWindow extends El {
     this.data = {
       children,
       id,
-      sizeLocks,
       title,
       dimensions,
       location,
@@ -46,58 +44,48 @@ export default class DOMWindow extends El {
       minWidth,
       buttons,
     }
-    this.attrs(['class', 'dom-windows--window'])
-
     const [x, y] = this.data.location
     const [width, height] = this.data.dimensions
-
-    this.on('pointerdown', e => {
-      e.preventDefault()
-      this.styles(['zIndex', performance.now() + ''])
-    }).styles(
-      ['position', 'absolute'],
-      ['display', 'flex'],
-      ['flexWrap', 'wrap'],
-      ['left', `${x}px`],
-      ['top', `${y}px`],
-      ['width', `${width}px`],
-      ['height', `${height}px`]
-    )
-
     this.openHeight = `${height}px`
 
-    const handles = RESIZE_HANDLES.reduce(
-      (acc, kind) => ({ ...acc, [kind]: new ResizeHandle(this, kind) }),
-      {} as { [Kind in ResizeHandleKind]: ResizeHandle }
+    this.resizeHandles = RESIZE_HANDLES.map(
+      kind => new ResizeHandle(this, kind)
     )
 
-    const childrenWrapper = new El('div')
-      .attrs(['class', 'dom-windows--children-wrapper'])
+    this.attrs(['class', 'dom-windows--window'])
       .styles(
-        ['width', `100%`],
-        ['height', `calc(100% - ${this.data.dragHandleHeight}px)`],
-        ['position', 'relative'],
-        ['overflow', 'scroll']
+        ['position', 'absolute'],
+        ['display', 'flex'],
+        ['left', `${x}px`],
+        ['top', `${y}px`],
+        ['width', `${width}px`],
+        ['height', `${height}px`]
       )
-    childrenWrapper.el.append(config.children)
-
-    this.addChildren(
-      handles['top-left'],
-      handles['top'],
-      handles['top-right'],
-      handles['left'],
-      new El('div')
-        .attrs(['class', 'dom-windows--content-wrapper'])
-        .styles(
-          ['width', `calc(100% - ${this.data.resizeHandleSize * 2}px)`],
-          ['height', `calc(100% - ${this.data.resizeHandleSize * 2}px)`]
-        )
-        .addChildren(new DragHandle(this), childrenWrapper),
-      handles['right'],
-      handles['bottom-left'],
-      handles['bottom'],
-      handles['bottom-right']
-    )
+      .addChildren(
+        new El('div')
+          .attrs(['class', 'dom-windows--content'])
+          .styles(
+            ['position', 'relative'],
+            ['display', `flex`],
+            ['flexDirection', 'column']
+          )
+          .addChildren(
+            new DragHandle(this),
+            new El('div')
+              .attrs(['class', 'dom-windows--children'])
+              .styles(
+                ['flex', '1'],
+                ['position', 'relative'],
+                ['overflow', 'scroll']
+              )
+              .addChildren(config.children),
+            ...this.resizeHandles
+          )
+      )
+      .on('pointerdown', e => {
+        e.preventDefault()
+        this.styles(['zIndex', performance.now() + ''])
+      })
       .state('dragging', false)
       .state('resizing', false)
       .state('open', true)
@@ -137,17 +125,32 @@ export default class DOMWindow extends El {
   }
 
   expand = () => {
+    this.manager.event('onBeforeExpandWindow', this)
+
     this.el.style.height = this.openHeight
+    this.resizeHandles
+      .filter(handle => !['left', 'right'].includes(handle.kind))
+      .forEach(handle => {
+        handle.styles(['pointerEvents', 'auto'])
+      })
     this.state('open', true)
+
+    this.manager.event('onExpandWindow', this)
   }
 
   collapse = () => {
+    this.manager.event('onBeforeCollapseWindow', this)
+
     this.openHeight = this.el.style.height
-    this.el.style.height = `${getCollapsedHeight(
-      this.data.dragHandleHeight,
-      this.data.resizeHandleSize
-    )}px`
+    this.el.style.height = `${this.data.dragHandleHeight}px`
+    this.resizeHandles
+      .filter(handle => !['left', 'right'].includes(handle.kind))
+      .forEach(handle => {
+        handle.styles(['pointerEvents', 'none'])
+      })
     this.state('open', false)
+
+    this.manager.event('onCollapseWindow', this)
   }
 
   state = (attr: 'dragging' | 'resizing' | 'open', value: boolean) => {
