@@ -1,4 +1,4 @@
-import DOMWindows from 'lib'
+import DOMWindows from 'lib/src'
 
 const domWindows = new DOMWindows({
   dimensions: [400, 300],

@@ -4,7 +4,8 @@
   "description": "",
   "scripts": {
     "dev": "vite dev",
-    "test": "jest"
+    "test": "jest",
+    "build": "cd lib && tsc"
   },
   "jest": {
     "moduleDirectories": ["node_modules", "./"]
