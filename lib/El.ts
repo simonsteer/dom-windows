@@ -50,7 +50,7 @@ export default class El {
       }
     })
     this.children = children
-    this.el.replaceChildren(
+    ;(this.el as HTMLDivElement).replaceChildren(
       ...this.children.map(c => (c instanceof El ? c.el : c))
     )
     return this
